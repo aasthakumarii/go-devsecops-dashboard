@@ -35,7 +35,7 @@ jobs:
           npm install \
             --global \
             --ignore-scripts \
-            snyk
+            snyk@1.1306.4
 
           snyk --version
 
