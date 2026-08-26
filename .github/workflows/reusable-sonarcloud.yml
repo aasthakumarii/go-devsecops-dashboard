@@ -1,0 +1,80 @@
+name: Reusable - SonarCloud Analysis
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: Go version used for SonarCloud analysis
+        required: false
+        type: string
+        default: "1.23"
+
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  sonarcloud:
+    name: sonarcloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Create Sonar report directory
+        shell: bash
+        run: |
+          mkdir -p reports/sonar
+
+      - name: Generate Go coverage
+        shell: bash
+        run: |
+          go test ./... \
+            -coverprofile=reports/sonar/coverage.out \
+            2>&1 | tee reports/sonar/go-test.log
+
+      - name: Run SonarCloud analysis
+        uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Write SonarCloud summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## SonarCloud Analysis" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "**Status:** PASS" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Status:** FAIL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Project key: \`aasthakumarii_go-devsecops-dashboard\`" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Organization: \`aasthakumarii\`" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SonarCloud reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarcloud-reports-${{ github.run_id }}
+          path: reports/sonar/
+          if-no-files-found: warn
+          retention-days: 7

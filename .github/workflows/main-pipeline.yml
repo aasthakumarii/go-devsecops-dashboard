@@ -26,3 +26,12 @@ jobs:
     uses: ./.github/workflows/reusable-unit-tests.yml
     with:
       go-version: "1.23"
+
+  sonarcloud:
+    name: SonarCloud
+    uses: ./.github/workflows/reusable-sonarcloud.yml
+    with:
+      go-version: "1.23"
+
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
