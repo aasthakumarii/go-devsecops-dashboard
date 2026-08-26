@@ -1,0 +1,97 @@
+name: Reusable - Pipeline Report
+
+on:
+  workflow_call:
+    inputs:
+      build-status:
+        required: true
+        type: string
+
+      unit-test-status:
+        required: true
+        type: string
+
+      sonar-status:
+        required: true
+        type: string
+
+      snyk-status:
+        required: true
+        type: string
+
+      deploy-status:
+        required: true
+        type: string
+
+      zap-status:
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  report:
+    name: generate-html-report
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_STATUS: ${{ inputs.build-status }}
+      UNIT_TEST_STATUS: ${{ inputs.unit-test-status }}
+      SONAR_STATUS: ${{ inputs.sonar-status }}
+      SNYK_STATUS: ${{ inputs.snyk-status }}
+      DEPLOY_STATUS: ${{ inputs.deploy-status }}
+      ZAP_STATUS: ${{ inputs.zap-status }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Create artifact collection directory
+        shell: bash
+        run: |
+          mkdir -p collected-artifacts
+
+      - name: Download pipeline artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
+        with:
+          path: collected-artifacts
+          merge-multiple: false
+
+      - name: Show collected reports
+        shell: bash
+        run: |
+          find collected-artifacts \
+            -maxdepth 5 \
+            -type f \
+            -print || true
+
+      - name: Generate consolidated HTML report
+        shell: bash
+        run: |
+          python3 scripts/generate_report.py
+
+      - name: Write report summary
+        shell: bash
+        run: |
+          echo "## Consolidated Pipeline Report" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "HTML report generated successfully." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Download the \`complete-pipeline-report\` artifact to view it." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload complete pipeline report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: complete-pipeline-report-${{ github.run_id }}
+          path: site/
+          if-no-files-found: error
+          retention-days: 14
