@@ -7,7 +7,7 @@ on:
         description: Go version used for tests
         required: false
         type: string
-        default: "1.23"
+        default: "1.25.13"
 
     outputs:
       status:
