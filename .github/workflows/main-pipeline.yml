@@ -14,6 +14,8 @@ on:
 permissions:
   contents: read
   actions: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
@@ -97,3 +99,17 @@ jobs:
       snyk-status: ${{ needs.snyk.result }}
       deploy-status: ${{ needs.deploy.result }}
       zap-status: ${{ needs.zap.result }}
+
+  pages:
+    name: Publish Pipeline Report
+
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.report.result == 'success'
+
+    needs:
+      - report
+
+    uses: ./.github/workflows/reusable-pages.yml
