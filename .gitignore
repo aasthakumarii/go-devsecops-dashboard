@@ -1,0 +1,6 @@
+server
+coverage.out
+reports/
+*.log
+.vscode/
+.idea/

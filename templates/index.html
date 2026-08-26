@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Go DevSecOps Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/style.css"
+    >
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h1>Go DevSecOps Dashboard</h1>
+
+        <p>
+            Secure CI/CD Pipeline Demonstration
+        </p>
+    </div>
+
+    <div class="status-badge">
+        {{.Status}}
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="hero">
+
+        <div>
+
+            <span class="tag">
+                Go Application
+            </span>
+
+            <h2>
+                DevSecOps Pipeline
+                Monitoring Dashboard
+            </h2>
+
+            <p>
+                This application demonstrates
+                automated build, testing,
+                security scanning, deployment,
+                and reporting using GitHub Actions.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <section class="cards">
+
+        <article class="card">
+
+            <h3>Application</h3>
+
+            <p>
+                {{.Application}}
+            </p>
+
+        </article>
+
+
+        <article class="card">
+
+            <h3>Environment</h3>
+
+            <p>
+                {{.Environment}}
+            </p>
+
+        </article>
+
+
+        <article class="card">
+
+            <h3>Version</h3>
+
+            <p>
+                {{.Version}}
+            </p>
+
+        </article>
+
+
+        <article class="card">
+
+            <h3>Application Health</h3>
+
+            <p class="healthy">
+                {{.Status}}
+            </p>
+
+        </article>
+
+    </section>
+
+
+    <section class="pipeline">
+
+        <h2>
+            DevSecOps Pipeline
+        </h2>
+
+        <div class="pipeline-grid">
+
+            <div class="pipeline-stage">
+                <span>01</span>
+                <h3>Build</h3>
+                <p>Compile Go application</p>
+            </div>
+
+
+            <div class="pipeline-stage">
+                <span>02</span>
+                <h3>Unit Test</h3>
+                <p>Run automated Go tests</p>
+            </div>
+
+
+            <div class="pipeline-stage">
+                <span>03</span>
+                <h3>SonarCloud</h3>
+                <p>Static code analysis</p>
+            </div>
+
+
+            <div class="pipeline-stage">
+                <span>04</span>
+                <h3>Snyk</h3>
+                <p>Security scanning</p>
+            </div>
+
+
+            <div class="pipeline-stage">
+                <span>05</span>
+                <h3>Deploy</h3>
+                <p>Deploy application to AWS EC2</p>
+            </div>
+
+
+            <div class="pipeline-stage">
+                <span>06</span>
+                <h3>OWASP ZAP</h3>
+                <p>Dynamic application testing</p>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="system-info">
+
+        <h2>
+            Runtime Information
+        </h2>
+
+        <div class="info-row">
+
+            <span>
+                Server Time
+            </span>
+
+            <strong>
+                {{.ServerTime}}
+            </strong>
+
+        </div>
+
+
+        <div class="info-row">
+
+            <span>
+                Health Endpoint
+            </span>
+
+            <a href="/health">
+                /health
+            </a>
+
+        </div>
+
+
+        <div class="info-row">
+
+            <span>
+                Status API
+            </span>
+
+            <a href="/api/status">
+                /api/status
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+
+    <p>
+        Go DevSecOps Dashboard
+        · GitHub Actions
+        · SonarCloud
+        · Snyk
+        · AWS
+    </p>
+
+</footer>
+
+</body>
+</html>
