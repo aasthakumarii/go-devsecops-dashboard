@@ -1,0 +1,155 @@
+name: Reusable - Go Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: Go version used for tests
+        required: false
+        type: string
+        default: "1.23"
+
+    outputs:
+      status:
+        description: Unit test result
+        value: ${{ jobs.unit-tests.outputs.status }}
+
+      coverage:
+        description: Go code coverage percentage
+        value: ${{ jobs.unit-tests.outputs.coverage }}
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: go-test
+    runs-on: ubuntu-latest
+
+    outputs:
+      status: ${{ steps.test-result.outputs.status }}
+      coverage: ${{ steps.coverage-result.outputs.coverage }}
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Create reports directory
+        shell: bash
+        run: |
+          mkdir -p reports/tests
+
+      - name: Run unit tests
+        id: tests
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+
+          go test ./... \
+            -v \
+            -coverprofile=reports/tests/coverage.out \
+            2>&1 | tee reports/tests/unit-tests.log
+
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+
+          echo "exit_code=$TEST_EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+          exit 0
+
+      - name: Generate coverage report
+        id: coverage-result
+        if: always()
+        shell: bash
+        run: |
+          if [ -f reports/tests/coverage.out ]; then
+
+            go tool cover \
+              -func=reports/tests/coverage.out \
+              > reports/tests/coverage.txt
+
+            COVERAGE=$(go tool cover \
+              -func=reports/tests/coverage.out \
+              | awk '/total:/ {print $3}')
+
+            echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+          else
+
+            echo "coverage=N/A" >> "$GITHUB_OUTPUT"
+
+          fi
+
+      - name: Determine test status
+        id: test-result
+        if: always()
+        shell: bash
+        run: |
+          EXIT_CODE="${{ steps.tests.outputs.exit_code }}"
+
+          if [ -z "$EXIT_CODE" ]; then
+            EXIT_CODE=1
+          fi
+
+          if [ "$EXIT_CODE" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write unit test summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Go Unit Test Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ steps.test-result.outputs.status }}" = "success" ]; then
+            echo "**Status:** PASS" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Status:** FAIL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Coverage:** ${{ steps.coverage-result.outputs.coverage }}" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ steps.test-result.outputs.status }}" = "failure" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Failure output" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+
+            tail -n 50 reports/tests/unit-tests.log \
+              >> "$GITHUB_STEP_SUMMARY" || true
+
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-unit-test-reports-${{ github.run_id }}
+          path: |
+            reports/tests/unit-tests.log
+            reports/tests/coverage.out
+            reports/tests/coverage.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail job when tests failed
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.test-result.outputs.status }}" != "success" ]; then
+            echo "Go unit tests failed."
+            exit 1
+          fi
+
+          echo "Go unit tests passed."
