@@ -19,19 +19,19 @@ jobs:
     name: Build
     uses: ./.github/workflows/reusable-build.yml
     with:
-      go-version: "1.23"
+      go-version: "1.25.13"
 
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/reusable-unit-tests.yml
     with:
-      go-version: "1.23"
+      go-version: "1.25.13"
 
   sonarcloud:
     name: SonarCloud
     uses: ./.github/workflows/reusable-sonarcloud.yml
     with:
-      go-version: "1.23"
+      go-version: "1.25.13"
 
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
