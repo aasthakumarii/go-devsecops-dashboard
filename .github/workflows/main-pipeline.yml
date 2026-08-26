@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
@@ -73,3 +74,26 @@ jobs:
 
     secrets:
       EC2_HOST: ${{ secrets.EC2_HOST }}
+
+  report:
+    name: Consolidated Pipeline Report
+
+    if: always()
+
+    needs:
+      - build
+      - unit-tests
+      - sonarcloud
+      - snyk
+      - deploy
+      - zap
+
+    uses: ./.github/workflows/reusable-report.yml
+
+    with:
+      build-status: ${{ needs.build.result }}
+      unit-test-status: ${{ needs.unit-tests.result }}
+      sonar-status: ${{ needs.sonarcloud.result }}
+      snyk-status: ${{ needs.snyk.result }}
+      deploy-status: ${{ needs.deploy.result }}
+      zap-status: ${{ needs.zap.result }}
