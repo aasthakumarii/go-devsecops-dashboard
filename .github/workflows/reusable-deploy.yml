@@ -1,0 +1,85 @@
+name: Reusable - Deploy to EC2
+
+on:
+  workflow_call:
+    secrets:
+      EC2_HOST:
+        required: true
+      EC2_USER:
+        required: true
+      EC2_SSH_KEY:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy-ec2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Deploy application to EC2
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+
+          script: |
+            set -e
+
+            cd /home/ubuntu
+
+            if [ ! -d "go-devsecops-dashboard" ]; then
+              git clone https://github.com/${{ github.repository }}.git
+            fi
+
+            cd go-devsecops-dashboard
+
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+
+            docker stop go-devsecops-dashboard || true
+            docker rm go-devsecops-dashboard || true
+
+            docker build \
+              -t go-devsecops-dashboard:latest \
+              .
+
+            docker run -d \
+              --name go-devsecops-dashboard \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -e APP_ENV=production \
+              -e APP_VERSION=${{ github.sha }} \
+              go-devsecops-dashboard:latest
+
+            sleep 5
+
+            docker ps
+
+            curl --fail http://localhost:8080/health
+
+      - name: Write deployment summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## EC2 Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "**Status:** PASS" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Application deployed successfully to EC2." \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Status:** FAIL" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "EC2 deployment failed. Review deployment logs." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
